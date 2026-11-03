@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Record Manager</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:15px;
+    font-family:Arial,sans-serif;
+    background:#eef1f5;
+    color:#111827;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+}
+
+/* Header */
+.header{
+    background:#111827;
+    color:#fff;
+    padding:20px;
+    border-radius:16px;
+    text-align:center;
+    margin-bottom:15px;
+}
+
+.header h1{
+    margin:0 0 6px;
+    font-size:25px;
+}
+
+.header p{
+    margin:0;
+    color:#cbd5e1;
+}
+
+/* List selector */
+.selector{
+    background:#fff;
+    padding:15px;
+    border-radius:14px;
+    margin-bottom:15px;
+    box-shadow:0 3px 12px rgba(0,0,0,.07);
+}
+
+.selector label{
+    display:block;
+    font-weight:bold;
+    margin-bottom:8px;
+}
+
+#listSelect{
+    width:100%;
+    padding:12px;
+    border:1px solid #cbd5e1;
+    border-radius:9px;
+    font-size:16px;
+    background:#fff;
+}
+
+/* List */
+.list-box{
+    background:#fff;
+    padding:15px;
+    border-radius:16px;
+    box-shadow:0 3px 12px rgba(0,0,0,.07);
+}
+
+.list-title{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:15px;
+}
+
+.list-title input{
+    width:100%;
+    padding:12px;
+    border:1px solid #cbd5e1;
+    border-radius:9px;
+    font-size:19px;
+    font-weight:bold;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:8px;
+}
+
+.row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px;
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
+    border-radius:9px;
+}
+
+.number{
+    width:42px;
+    font-size:17px;
+    font-weight:bold;
+    text-align:center;
+}
+
+.row input{
+    width:100%;
+    min-width:0;
+    padding:9px;
+    border:1px solid #cbd5e1;
+    border-radius:7px;
+    font-size:15px;
+}
+
+.list-total{
+    margin-top:15px;
+    padding:13px;
+    background:#eef2ff;
+    border-radius:9px;
+    text-align:center;
+    font-size:19px;
+    font-weight:bold;
+}
+
+/* Submit */
+.submit-btn{
+    width:100%;
+    margin-top:12px;
+    padding:14px;
+    border:0;
+    border-radius:10px;
+    background:#16a34a;
+    color:white;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.submit-btn:hover{
+    background:#15803d;
+}
+
+.status{
+    text-align:center;
+    margin-top:10px;
+    font-size:14px;
+    color:#166534;
+}
+
+/* Grand total */
+.grand-total{
+    margin-top:15px;
+    background:#111827;
+    color:white;
+    padding:16px;
+    border-radius:14px;
+    text-align:center;
+    font-size:21px;
+    font-weight:bold;
+}
+
+@media(max-width:600px){
+    .grid{
+        grid-template-columns:1fr;
+    }
+
+    .header h1{
+        font-size:22px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>Payment Record</h1>
+        <p>6 Lists • 00 से 99 तक</p>
+    </div>
+
+    <!-- ONE PLACE TO CHANGE LIST -->
+    <div class="selector">
+        <label>List चुनें</label>
+
+        <select id="listSelect" onchange="changeList()">
+            <option value="1">List 1</option>
+            <option value="2">List 2</option>
+            <option value="3">List 3</option>
+            <option value="4">List 4</option>
+            <option value="5">List 5</option>
+            <option value="6">List 6</option>
+        </select>
+    </div>
+
+    <!-- ACTIVE LIST -->
+    <div class="list-box">
+
+        <div class="list-title">
+            <input
+                id="listName"
+                type="text"
+                value="List 1"
+                placeholder="List का नाम"
+                onchange="saveListName()"
+            >
+        </div>
+
+        <div class="grid" id="numberGrid"></div>
+
+        <div class="list-total">
+            List Total: ₹<span id="listTotal">0</span>
+        </div>
+
+        <!-- SEPARATE SUBMIT BUTTON -->
+        <button class="submit-btn" onclick="submitCurrentList()">
+            SUBMIT THIS LIST
+        </button>
+
+        <div class="status" id="status"></div>
+
+    </div>
+
+    <div class="grand-total">
+        Grand Total: ₹<span id="grandTotal">0</span>
+    </div>
+
+</div>
+
+
+<script>
+
+const totalLists = 6;
+
+let currentList = 1;
+
+const listNames = {};
+const payments = {};
+
+/* Create 6 lists in memory */
+
+for(let i = 1; i <= totalLists; i++){
+
+    listNames[i] = "List " + i;
+    payments[i] = {};
+
+    for(let n = 0; n <= 99; n++){
+
+        const num = String(n).padStart(2,"0");
+
+        payments[i][num] = "";
+    }
+}
+
+
+/* Create 00-99 */
+
+function createNumbers(){
+
+    const grid = document.getElementById("numberGrid");
+
+    grid.innerHTML = "";
+
+    for(let n = 0; n <= 99; n++){
+
+        const num = String(n).padStart(2,"0");
+
+        const row = document.createElement("div");
+
+        row.className = "row";
+
+        row.innerHTML = `
+            <div class="number">${num}</div>
+
+            <input
+                type="number"
+                min="0"
+                placeholder="Payment ₹"
+                value="${payments[currentList][num]}"
+                data-number="${num}"
+                oninput="updatePayment('${num}', this.value)"
+            >
+        `;
+
+        grid.appendChild(row);
+    }
+
+    calculateListTotal();
+}
+
+
+/* Change list from ONE place */
+
+function changeList(){
+
+    currentList =
+        Number(document.getElementById("listSelect").value);
+
+    document.getElementById("listName").value =
+        listNames[currentList];
+
+    document.getElementById("status").textContent = "";
+
+    createNumbers();
+}
+
+
+/* Change list name */
+
+function saveListName(){
+
+    const name =
+        document.getElementById("listName").value.trim();
+
+    if(name){
+        listNames[currentList] = name;
+    }
+}
+
+
+/* Save payment */
+
+function updatePayment(number,value){
+
+    payments[currentList][number] = value;
+
+    calculateListTotal();
+}
+
+
+/* Current list total */
+
+function calculateListTotal(){
+
+    let total = 0;
+
+    for(let number in payments[currentList]){
+
+        total +=
+            Number(payments[currentList][number]) || 0;
+    }
+
+    document.getElementById("listTotal").textContent =
+        total.toLocaleString("en-IN");
+
+    calculateGrandTotal();
+}
+
+
+/* Grand total */
+
+function calculateGrandTotal(){
+
+    let grand = 0;
+
+    for(let list = 1; list <= totalLists; list++){
+
+        for(let number in payments[list]){
+
+            grand +=
+                Number(payments[list][number]) || 0;
+        }
+    }
+
+    document.getElementById("grandTotal").textContent =
+        grand.toLocaleString("en-IN");
+}
+
+
+/* Separate submit for current list */
+
+function submitCurrentList(){
+
+    saveListName();
+
+    const submittedData = {
+
+        list: currentList,
+
+        listName: listNames[currentList],
+
+        payments: payments[currentList],
+
+        total: Object.values(payments[currentList])
+            .reduce((sum,value) => sum + (Number(value) || 0),0),
+
+        submittedAt: new Date().toISOString()
+
+    };
+
+    /*
+       DATABASE CONNECTION बाद में
+       इसी submittedData को Firebase/Supabase
+       में भेजा जा सकता है।
+    */
+
+    console.log("SUBMITTED LIST:",submittedData);
+
+    document.getElementById("status").textContent =
+        "✓ " + listNames[currentList] +
+        " का record तैयार है।";
+
+    calculateGrandTotal();
+}
+
+
+/* Start */
+
+createNumbers();
+
+</script>
+
+</body>
+</html>
